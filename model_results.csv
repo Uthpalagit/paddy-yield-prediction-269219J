@@ -1,0 +1,23 @@
+Model,Family,CV MAE,Test MAE,Test RMSE,Test MAPE %,Test R2,Test MAE excl. fertilizer-ban seasons,Test R2 excl. fertilizer-ban seasons
+Naive same season last year,Baseline,438.1734,560.548,749.8813,15.4834,0.3789,,
+Naive average of last 3 same seasons,Baseline,366.3614,532.3456,719.8031,14.7753,0.4278,,
+"ARIMA(1,1,1) per district and season",Baseline,375.3364,509.1897,687.2855,14.1775,0.4783,,
+Ridge regression,Weak learner,352.941,438.0512,619.5439,12.327,0.5761,348.5606,0.7447
+Decision tree,Weak learner,389.6006,532.8016,716.8951,14.963,0.4324,426.0886,0.6418
+Bagging (500 trees),Bagging,370.2762,482.0403,672.5045,13.5621,0.5005,375.5999,0.7107
+Random Forest,Bagging,368.2425,465.0576,639.6748,13.003,0.5481,372.0864,0.718
+XGBoost,Boosting,350.077,455.4146,634.2693,12.8184,0.5557,364.2297,0.7249
+LightGBM,Boosting,357.1655,463.0214,640.1746,12.9514,0.5474,373.2032,0.7116
+CatBoost (native categories),Boosting,352.5802,456.3896,623.9219,12.7077,0.5701,377.1307,0.7079
+Stacking Ridge + RF + LightGBM + CatBoost -> Ridge,Stacking,349.8071,454.6703,634.0277,12.8008,0.556,365.1597,0.7239
+ARIMA + Random Forest on residuals,Hybrid,368.8855,487.7937,666.8318,13.7669,0.5089,388.5364,0.6951
+Ridge + CatBoost blend (w=0.5),Hybrid,348.122,442.9631,617.1856,12.4068,0.5793,358.0629,0.7327
+Explainable Boosting Machine,Not in lectures,346.6308,446.1907,615.6078,12.4249,0.5814,374.3181,0.7168
+Linear mixed-effects (district intercepts),Not in lectures,354.826,441.1058,626.3713,12.4416,0.5667,347.4737,0.7455
+NGBoost,Not in lectures,343.2171,459.3055,644.8022,13.0108,0.5408,367.8742,0.7168
+Gaussian Process,Not in lectures,361.1481,425.9572,601.773,11.9824,0.6,352.5319,0.7414
+Extra Trees,Not in lectures,361.4771,466.9015,631.5703,12.925,0.5594,382.0425,0.7059
+Histogram Gradient Boosting,Not in lectures,355.1636,458.4207,633.9533,12.902,0.5561,370.337,0.7147
+Huber regression,Not in lectures,362.3107,437.8512,618.75,12.31,0.5772,352.0085,0.7368
+"Existing stacked XGBoost (Senevirathne & Premasiri, 2025)",Existing approach,345.3267,451.0417,630.124,12.7572,0.5615,361.2095,0.7301
+"Existing SVR, RBF kernel (CJS 2021) {'model__C': 1000, 'model__epsilon': 200, 'model__gamma': 'scale'}",Existing approach,387.688,443.3562,609.372,12.2301,0.5899,380.4317,0.7

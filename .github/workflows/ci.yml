@@ -1,0 +1,25 @@
+# Continuous integration: on every push, install the API's libraries, run the tests and check that both containers build.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install the API's libraries
+        run: pip install numpy==2.3.5 pandas==2.3.3 scikit-learn==1.7.2 catboost==1.2.10 statsmodels==0.14.5 shap==0.53.0 ngboost==0.5.11 interpret-core==0.7.8 fastapi==0.143.0 uvicorn==0.54.0 httpx==0.28.1 pytest==8.4.2
+      - name: Run the tests
+        run: pytest -q tests
+      - name: Check that the monitor runs (replay of the latest season)
+        run: python monitor.py --season 2025.75
+      - name: Build the API container
+        run: docker build -t paddy-yield-api .
+      - name: Build the front-end container
+        run: docker build -f Dockerfile.app -t paddy-yield-app .

@@ -1,0 +1,50 @@
+# Continuous deployment: after the tests pass on main, build both images on the GitHub runner, push them to the registry and roll them out.
+# The images are built here rather than in Azure Container Registry, because Azure for Students does not allow registry builds.
+# Repository secrets needed: AZURE_CREDENTIALS (a service principal, from
+#   az ad sp create-for-rbac --name paddy-yield-deploy --role contributor --scopes /subscriptions/<id>/resourceGroups/rg-paddy-yield --json-auth)
+# and ACR_USERNAME / ACR_PASSWORD (from az acr credential show --name paddyyield269219j).
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  RESOURCE_GROUP: rg-paddy-yield
+  REGISTRY: paddyyield269219j.azurecr.io
+
+jobs:
+  deploy:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+      - name: Build and push both images
+        run: |
+          docker build -t $REGISTRY/paddy-yield-api:${{ github.sha }} -f Dockerfile . && docker push $REGISTRY/paddy-yield-api:${{ github.sha }}
+          docker build -t $REGISTRY/paddy-yield-app:${{ github.sha }} -f Dockerfile.app . && docker push $REGISTRY/paddy-yield-app:${{ github.sha }}
+      - uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - name: Roll out the new images
+        run: |
+          # Azure occasionally times out on an update, so each one is tried up to three times
+          for app in api app; do
+            for attempt in 1 2 3; do
+              az containerapp update --name paddy-yield-$app --resource-group $RESOURCE_GROUP --image $REGISTRY/paddy-yield-$app:${{ github.sha }} && break
+              [ $attempt = 3 ] && exit 1
+              sleep 30
+            done
+          done
+      - name: Check the live API answers
+        run: |
+          url=$(az containerapp show --name paddy-yield-api --resource-group $RESOURCE_GROUP --query properties.configuration.ingress.fqdn -o tsv)
+          curl --fail --retry 5 --retry-delay 10 "https://$url/health"

@@ -1,0 +1,12 @@
+# only what the two containers need (Dockerfile = API, Dockerfile.app = Streamlit front end)
+*
+!Dockerfile
+!Dockerfile.app
+!paddy_helpers.py
+!api.py
+!app.py
+!paddy_model.pkl
+!holdout_sample.csv
+!model_results.csv
+!Raw Data/district_map.geojson
+!.streamlit/config.toml

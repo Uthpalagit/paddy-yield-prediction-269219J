@@ -1,0 +1,38 @@
+# Scheduled monitoring, as in the MLOps workshop: every 6 hours, check the latest logged inputs (and the official yields
+# once released) for drift. The job fails when retraining is recommended, which notifies the repository owner.
+# Without a prediction log in the repository it replays the most recent season, so the check can be seen working.
+name: Monitor
+
+on:
+  schedule:
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+    inputs:
+      season:
+        description: "Season to replay, e.g. 2021.75 for Maha 2021/22"
+        required: false
+        default: "2025.75"
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install
+        run: pip install numpy==2.3.5 pandas==2.3.3 scikit-learn==1.7.2 catboost==1.2.10 statsmodels==0.14.5 shap==0.53.0 ngboost==0.5.11 interpret-core==0.7.8
+      - name: Check for drift
+        run: |
+          if [ -f predictions_log.jsonl ]; then
+            python monitor.py --log predictions_log.jsonl $( [ -f actuals.csv ] && echo "--actuals actuals.csv" )
+          else
+            python monitor.py --season "${{ github.event.inputs.season || '2025.75' }}"
+          fi
+      - name: Keep the report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: monitoring-report
+          path: monitoring_report.json
