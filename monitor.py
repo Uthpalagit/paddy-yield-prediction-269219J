@@ -7,10 +7,10 @@ Two ways to feed it:
   python monitor.py --season 2025.75
       replays one past season from Raw Data/cleaned_paddy_data.csv (2025.75 = Maha 2025/26, 2021.75 = Maha 2021/22).
       The deployed model was trained on every season up to Maha 2025/26, so a replayed season is one it has already seen:
-      the replay shows the checks working, while notebook section 13.1 tests the rules on seasons the model had not seen.
+      the replay shows the checks working, while notebook section 19.1 tests the rules on seasons the model had not seen.
 
 It compares the new inputs with the training inputs (Population Stability Index per feature), and the estimates with the
-official yields when they are available. The rules are the ones in notebook section 13.1. It writes monitoring_report.json,
+official yields when they are available. The rules are the ones in notebook section 19.1. It writes monitoring_report.json,
 and exits with code 1 when retraining is recommended, so that a scheduled workflow fails visibly and someone retrains.
 """
 import os
@@ -90,7 +90,7 @@ def main():
               "history_out_of_range_pct": round(float(outside[history].max() * 100), 1),
               "features_out_of_range_pct": (outside[outside > 0.2] * 100).round(1).to_dict(),
               "psi_largest": drift.psi.head(3).round(2).to_dict(),
-              "note_on_psi": "one season has about 25 districts sharing the same weather, so PSI is noisy; see notebook 13.1"}
+              "note_on_psi": "one season has about 25 districts sharing the same weather, so PSI is noisy; see notebook 19.1"}
     extrapolating = report["history_out_of_range_pct"] > 50
     retrain = False
     if "yield_kg_ha" in frame and frame["yield_kg_ha"].notna().any():

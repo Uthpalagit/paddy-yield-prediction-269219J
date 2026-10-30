@@ -1,0 +1,11 @@
+stages:
+  monitor:
+    cmd: python monitor.py --season 2025.75
+    deps:
+    - Raw Data
+    - paddy_model.pkl
+    - paddy_helpers.py
+    - monitor.py
+    metrics:
+    - monitoring_report.json:
+        cache: false

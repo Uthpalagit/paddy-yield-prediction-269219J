@@ -2,8 +2,9 @@
 .ipynb_checkpoints/
 __pycache__/
 catboost_info/
-monitoring_report.json
 predictions_log.jsonl
 .pytest_cache/
 README.md
 _run_tmp*.ipynb
+mlflow.db
+mlruns/

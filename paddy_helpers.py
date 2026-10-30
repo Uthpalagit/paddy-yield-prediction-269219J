@@ -105,7 +105,7 @@ def psi(reference, current, bins=None):
 
 def drift_report(reference, current, major=0.5, moderate=0.25):
     # PSI for every numeric column the two frames share, largest first. The usual cut-offs (0.25 and 0.1) assume large samples;
-    # with one season's 25 districts, random noise alone reaches about 0.45 (notebook 13.1), so the defaults are doubled
+    # with one season's 25 districts, random noise alone reaches about 0.45 (notebook 19.1), so the defaults are doubled
     # a national feature has one value per season, the same for every district, so it has no distribution to compare and is skipped
     cols = [c for c in reference.columns if c in current.columns and pd.Series(current[c]).nunique() > 2]
     out = pd.DataFrame({"psi": [psi(reference[c], current[c]) for c in cols]}, index=cols)

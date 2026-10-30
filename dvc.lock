@@ -1,0 +1,27 @@
+schema: '2.0'
+stages:
+  monitor:
+    cmd: python monitor.py --season 2025.75
+    deps:
+    - path: Raw Data
+      hash: md5
+      md5: 14a4c9fb03fa183ae8867bbfcbd8282c.dir
+      size: 32228779
+      nfiles: 20
+    - path: monitor.py
+      hash: md5
+      md5: ed6f3a408a5ff7e43015a538f6f60f53
+      size: 6190
+    - path: paddy_helpers.py
+      hash: md5
+      md5: 9faff672a006426c780d0dc62ffbc01f
+      size: 6561
+    - path: paddy_model.pkl
+      hash: md5
+      md5: 630c046e1ac56227be4a12ddd979521b
+      size: 2670276
+    outs:
+    - path: monitoring_report.json
+      hash: md5
+      md5: 4e44ce41f4a73def1444ea4fb073bd49
+      size: 652

@@ -1,0 +1,19 @@
+{
+  "source": "replay of Maha 2025/26, 25 districts (a season the deployed model was trained on)",
+  "model": "Explainable Boosting Machine",
+  "trained_on": "2275 district-seasons, Yala 1981 to Maha 2025/26",
+  "history_out_of_range_pct": 4.0,
+  "features_out_of_range_pct": {},
+  "psi_largest": {
+    "rain_wettest_month": 3.75,
+    "rain_anomaly_pct": 3.34,
+    "heavy_rain_days": 2.5
+  },
+  "note_on_psi": "one season has about 25 districts sharing the same weather, so PSI is noisy; see notebook 19.1",
+  "labelled_rows": 25,
+  "mae": 315.8,
+  "alert_level": 504.6,
+  "error_alert": false,
+  "retrain_recommended": false,
+  "action": "no action"
+}
