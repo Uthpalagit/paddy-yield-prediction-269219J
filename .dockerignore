@@ -8,5 +8,6 @@
 !paddy_model.pkl
 !holdout_sample.csv
 !model_results.csv
+!shap_test_seasons.csv
 !Raw Data/district_map.geojson
 !.streamlit/config.toml
