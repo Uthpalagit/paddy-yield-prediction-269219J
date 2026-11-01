@@ -17,6 +17,7 @@ from paddy_helpers import RidgeCatBoostBlend, register_for_unpickling, build_fea
 MODEL_PATH = os.path.join(BASE_DIR, "paddy_model.pkl")
 EXAMPLE_PATH = os.path.join(BASE_DIR, "holdout_sample.csv")
 RESULTS_PATH = os.path.join(BASE_DIR, "model_results.csv")
+SHAP_PATH = os.path.join(BASE_DIR, "shap_test_seasons.csv")  # SHAP values of the test seasons, saved by the notebook (17.1)
 MAP_PATH = os.path.join(BASE_DIR, "Raw Data", "district_map.geojson")  # official district boundaries (geoBoundaries), used only to draw the map
 REPO_URL = "https://github.com/Uthpalagit/paddy-yield-prediction-269219J"
 AZURE_APP_URL = "https://paddy-yield-app.grayflower-d27356cf.malaysiawest.azurecontainerapps.io"
@@ -613,6 +614,80 @@ if view == "Model comparison":
                                 "validation leader (446 against 459).")
                 st.dataframe(candidates[["Model", "CV MAE", "Test MAE", "Test R2"]].sort_values(col), hide_index=True, width="stretch",
                              height=420, column_config=table_cfg)
+
+if view == "Model comparison" and os.path.exists(SHAP_PATH):
+    # global SHAP of the chosen model on the 446 test seasons, the same values as Section 7 of the report and 17.1 of the notebook
+    shap_file = pd.read_csv(SHAP_PATH)
+    shap_cols = [c for c in shap_file.columns if c.startswith("shap_")]
+    X_ref = shap_file[[c[5:] for c in shap_cols]]
+    shap_values = shap_file[shap_cols].set_axis(X_ref.columns, axis=1)
+    st.markdown("#### What the chosen model learned (SHAP, test seasons 2017-2026)")
+    importance = shap_values.abs().mean().sort_values(ascending=False)
+    label = lambda c: FEATURE_NAMES.get(c, c)
+    ordinal = lambda n: f"{n}{'th' if 10 <= n % 100 <= 20 else {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th')}"
+    c1, c2 = st.columns([1, 1.3])
+    with c1, st.container(border=True):
+        top = importance.head(12)[::-1]
+        fig = go.Figure(go.Bar(x=top.values, y=[label(c) for c in top.index], orientation="h", marker_color=GREEN,
+                               text=[f"{v:,.0f}" for v in top.values], textposition="outside", cliponaxis=False,
+                               hovertemplate="%{y}: %{x:,.0f} kg/ha<extra></extra>"))
+        style(fig, 470, "Average effect of each feature (mean |SHAP|, kg/ha)")
+        fig.update_layout(margin=dict(r=50), yaxis=dict(automargin=True, tickfont=dict(size=11)))
+        st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
+    with c2, st.container(border=True):
+        # beeswarm, one dot per district-season, coloured from low (blue) to high (red) value of the feature
+        shown = list(importance.head(10).index)
+        rng = np.random.default_rng(0)
+        fig = go.Figure()
+        for rank, col in enumerate(shown):
+            x = shap_values[col].to_numpy()
+            y = rank + rng.uniform(-0.32, 0.32, len(x))
+            raw = X_ref[col]
+            numeric = pd.api.types.is_numeric_dtype(raw) and raw.nunique() >= 2
+            if numeric:  # percentile of the value, or 0 and 1 for a yes/no input such as the fertilizer shortage
+                colour = (raw.rank(pct=True) if raw.nunique() > 2 else raw.astype(float)).to_numpy()
+                ok = ~np.isnan(colour)
+                fig.add_trace(go.Scatter(x=x[ok], y=y[ok], mode="markers", showlegend=False, hoverinfo="skip",
+                                           marker=dict(size=4, color=colour[ok], colorscale=[[0, "#3B6FB6"], [0.5, "#8E5BA8"], [1, RED]],
+                                                       cmin=0, cmax=1, opacity=.7,
+                                                       colorbar=dict(title=dict(text="feature value", side="right"), tickvals=[0, 1],
+                                                                     ticktext=["low", "high"], thickness=10, len=.8) if rank == 0 else None,
+                                                       showscale=rank == 0)))
+                x, y = x[~ok], y[~ok]
+            fig.add_trace(go.Scatter(x=x, y=y, mode="markers", showlegend=False, hoverinfo="skip",
+                                       marker=dict(size=4, color="#9AA5A0", opacity=.6)))
+        fig.add_vline(x=0, line_color="#9AA5A0", line_width=1)
+        style(fig, 470, "SHAP value of every district-season (kg/ha)")
+        fig.update_layout(yaxis=dict(tickvals=list(range(len(shown))), ticktext=[label(c) for c in shown], autorange="reversed",
+                                     automargin=True, tickfont=dict(size=11), showgrid=False),
+                          xaxis=dict(title="effect on the estimate (kg/ha)", zeroline=False))
+        st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
+    c3, c4 = st.columns([1.3, 1])
+    numeric_cols = [c for c in importance.index if pd.api.types.is_numeric_dtype(X_ref[c]) and X_ref[c].nunique() > 2]
+    with c3, st.container(border=True):
+        pick = st.selectbox("Feature", numeric_cols, format_func=label, key="shap_feature")
+        fig = go.Figure(go.Scatter(x=X_ref[pick], y=shap_values[pick], mode="markers",
+                                     marker=dict(size=5, color=GREEN, opacity=.45),
+                                     hovertemplate="value %{x:,.2f}<br>effect %{y:+,.0f} kg/ha<extra></extra>"))
+        fig.add_hline(y=0, line_color="#9AA5A0", line_width=1)
+        style(fig, 360, f"How {label(pick).lower()} changes the estimate (SHAP dependence)")
+        fig.update_layout(xaxis_title=label(pick), yaxis_title="effect on the estimate (kg/ha)")
+        st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
+    with c4:
+        first, second = importance.index[0], importance.index[1]
+        weather = [c for c in importance.index if c in ("rain_season", "rain_anomaly_pct", "rain_wettest_month", "rain_driest_month", "rain_before",
+                                                         "dry_spell_days", "heavy_rain_days", "tmax", "rh", "solar", "wind")]
+        st.markdown(f"SHAP splits each estimate into a base value of {shap_file['base_value'].iloc[0]:,.0f} kg/ha and one contribution "
+                    "for each input. For the Explainable Boosting Machine these contributions are exact rather than approximate, because the "
+                    "model is a sum of one learned curve for each feature, so its SHAP values are its own terms. The few terms that join two "
+                    "features are split evenly between them.")
+        st.markdown(f"These charts cover the {len(X_ref):,} test seasons from Yala 2017 to Maha 2025/26, and the values are the same as in "
+                    f"the report and notebook. {label(first)} has the largest average effect ({importance[first]:,.0f} kg/ha), more than "
+                    f"twice that of {label(second).lower()} ({importance[second]:,.0f} kg/ha). The first weather input, "
+                    f"{label(weather[0]).lower()}, ranks {ordinal(list(importance.index).index(weather[0]) + 1)}. Recent yield history comes "
+                    "first, irrigation second and weather a distant third.")
+        st.markdown("The Estimate page breaks down a single estimate in the same way. SHAP describes how the model uses its inputs, not "
+                    "what causes yield.")
 
 if view == "Batch upload":
     st.markdown("Estimate many district-seasons at once. Download the example file, which holds every district with its typical values, "
